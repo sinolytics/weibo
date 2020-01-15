@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block container %}
+    <style type="text/css">
+        .customer-photo {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-size: 32px 35px;
+            background-position: center center;
+            vertical-align: middle;
+            line-height: 32px;
+            box-shadow: inset 0 0 1px #999, inset 0 0 10px rgba(0,0,0,.2);
+            margin-left: 5px;
+        }
+
+        .customer-name {
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 32px;
+            padding-left: 3px;
+        }
+    </style>
+    <div class="form-group row justify-content-center">
+        <input type="text" class="form-control col-sm-4" id="name" placeholder="name">
+        <button type="submit" class="btn btn-primary mx-sm-3 col-sm-1" onclick="javascript: $('#grid').data('kendoGrid').dataSource.read()">Search</button>
+    </div>
+    <div id="grid"></div>
+
+    <script>
+        $(document).ready(function () {
+            $("#grid").kendoGrid({
+                columns: [
+                    {field: "name", template: "<div class='customer-photo' style='background-image: url(#: photo #);'></div><div class='customer-name'>#: name #</div>"},
+                    {field: "area"},
+                    {field: "update_time"},
+                    {field: "wb", template: "#: JSON.stringify(wb) #", width: 400},
+                ],
+                groupable: false,
+                sortable: true,
+                dataSource: {
+                    transport: {
+                        read: {
+                            url: "/get_weibo_user",
+                            type: "POST"
+                        },
+                        parameterMap: function (data, type) {
+                            if(data.sort){
+                                var sort = []
+                                $.each(data.sort, function(i, v) {
+                                    sort.push([v['field'], v['dir'] == 'asc' ? 1 : -1])
+                                })
+                                data.sort = JSON.stringify(sort)
+                            }
+
+                            var filter = {}
+                            if($("#name").val()){
+                                filter['name'] = {"$regex": $("#name").val()}
+                            }
+                            data.filter = JSON.stringify(filter)
+
+                            return data
+                        },
+                    },
+                    serverPaging: true,
+                    serverSorting: true,
+                    serverFiltering: true,
+                    schema: {
+                        data: function(response) {
+                            if(response.code == 0){
+                                return response.data.data
+                            }else{
+                                alert(response.msg)
+                            }
+                        },
+                        total: function(response) {
+                            return response.code == 0 ? response.data.total : 0
+                        }
+                    },
+                    error: function(e) {
+                        alert(e)
+                    }
+                },
+                pageable: {
+                    refresh: true,
+                    pageSize: 20,
+                    buttonCount: 5
+                },
+            })
+        })
+
+    </script>
+{% endblock %}
